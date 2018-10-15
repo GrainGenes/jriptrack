@@ -24,7 +24,7 @@ getRefSeqs(function(chrlist,err) {
             if (err) return;
             //got trackData.json
 
-            let dir = targetdir+'tracks/'+chrname+'/';
+            let dir = targetdir+'tracks/'+trackname+'/'+chrname+'/';
             fs.ensureDirSync(dir);
 
             // write trackData.json
