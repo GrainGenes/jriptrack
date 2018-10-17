@@ -10,19 +10,28 @@ let datapath = "genome/whe_Ta_ABD_IWGSC-WGA-v1.0_2017/";
 let trackname = "hiconf-1.1"
 let targetdir = "data/"
 
-let reqarray = {count:0,list:[ ]};
+let reqarray = {
+    count:0,
+    list:[ ],
+    sendToQueue (item) {
+        if (fs.existsSync(item.path+item.file)) return; // skip if file already exists
+        this.list.push(item);
+        this.count++;
+    }
+};
 
 getRefSeqs(function(chrlist,err) {
-    if (err) return;
-
+    if (err) {
+        console.log(err);
+        return;
+    }
     let reqtrackcount = 0;
     // chrlist is content of seq/refSeqs.json
 
-    //fs.ensureDirSync(targetdir);
-
+    // look for trackData.json in each sequence (ie. chr1, chr2, etc.)
     for (i in chrlist) {
         let fi = baseurl+datapath+"tracks/"+trackname+"/"+chrlist[i].name+"/trackData.json";
-        console.log("chr",chrlist[i].name,fi);
+        console.log("chr",chrlist[i].name);
 
         reqtrackcount++;
         
@@ -40,32 +49,32 @@ getRefSeqs(function(chrlist,err) {
             // write trackData.json
             fs.writeFileSync(dir+"trackData.json",JSON.stringify(trackData));
 
+            // queue up names.txt
+            let names = {
+                url: baseurl+datapath+"tracks/"+trackname+"/"+chrname+"/names.txt",
+                path: dir,
+                file: "names.txt"
+            }
+            reqarray.sendToQueue(names);
+
             let histograms = trackData.histograms.stats;
-
             for(j in histograms) {
-                let histfile = baseurl+datapath+"tracks/"+trackname+"/"+chrname+"/hist-"+histograms[j].basesPerBin+"-0.json";
-                //console.log(histfile);
-
-                // write hist-*-0.json
-                let fi = "hist-"+histograms[j].basesPerBin+"-0.json";
-                
-                reqarray.list.push({url:histfile,path:dir,file:fi});
-                reqarray.count++;
-                //copyFile(histfile,dir,fi);
+                let item = {
+                    url:baseurl+datapath+"tracks/"+trackname+"/"+chrname+"/",
+                    path:dir,
+                    file:"hist-"+histograms[j].basesPerBin+"-0.json"
+                };
+                reqarray.sendToQueue(item);
             }
 
             let nclist = trackData.intervals.nclist;
-
             for(j in nclist) {
-                let lffile = baseurl+datapath+"tracks/"+trackname+"/"+chrname+"/lf-"+nclist[j][3]+".json";
-                //console.log(lffile);
-
-                // write lf-*.json
-                let fi = "lf-"+nclist[j][3]+".json";
-
-                reqarray.list.push({url:lffile,path:dir,file:fi});
-                reqarray.count++;
-                //copyFile(lffile,dir,fi);
+                let item = {
+                    url:baseurl+datapath+"tracks/"+trackname+"/"+chrname+"/",
+                    path:dir,
+                    file:"lf-"+nclist[j][3]+".json"
+                };
+                reqarray.sendToQueue(item);
             }
             reqtrackcount--;
         });
@@ -78,12 +87,12 @@ getRefSeqs(function(chrlist,err) {
         
             console.log("Starting requests "+reqarray.count);
 
-            // assuming openFiles is an array of file names
+            // submit all requests in queue
             async.eachLimit(reqarray.list,100, function(item, cb) {
                 copyFile(item,function(item,err){
                     reqarray.count--;
                     if (err) {
-                        console.log("request failed",item.url);
+                        console.log("request failed",item.url,err);
                         return cb(err);
                     }
                     item.complete = true;
@@ -101,12 +110,14 @@ getRefSeqs(function(chrlist,err) {
                 }
             });                
 
+            // wait for all requests to complete
             let lastcount = 0
             let t2 = setInterval(function() {
                 if (reqarray.count === lastcount) {
                     clearInterval(t2);
                     console.log("remaining requests ",reqarray.count);
 
+                    // show remaining requests
                     for(k in reqarray.list) {
                         if (typeof reqarray.list[k].complete === 'undefined') {
                             console.log(k,reqarray.list[k].path+" "+reqarray.list[k].file);
@@ -114,7 +125,7 @@ getRefSeqs(function(chrlist,err) {
                     }
                 }
                 lastcount = reqarray.count;
-            },500);
+            },2000);
             
 
         }
@@ -149,12 +160,11 @@ function getTrackData(fi,chrname,cb) {
     copies a file (fi) from fileurl to filedir
 */
 function copyFile(item,cb) {
-    request(item.url, function (err, response, body) {
+    request(item.url+item.file, function (err, response, body) {
         if (err) return cb(item,err);
 
         fs.ensureDirSync(item.path);
         fs.writeFile(item.path+item.file,body);
-        //console.log("completed -",filedir+fi);
         return cb(item);
       });
 }
