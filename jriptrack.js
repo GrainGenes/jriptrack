@@ -13,14 +13,16 @@ let targetdir = "data/";
 let getopt = require('node-getopt');
 let opt = new getopt([
     ['u','url=ARG'          ,'base URL of the source JBrowse dataset'],
-    ['n','name=ARG'         ,'track name (label)'],
-    ['d','dir=ARG'          ,'local target directory']
+    ['n','name=ARG'         ,'track name'],
+    ['d','dir=ARG'          ,'local target directory'],
+    ['t','gettracklist'     ,'retrieve trackList.json for the given URL']
 ])
 .setHelp(
     "Usage: node jriptrack.js [OPTION]\n" +
     "\n" +
     "[[OPTIONS]]\n" +
     "\n" +
+    "node jriptrack.js -t -u https://wheat.pw.usda.gov/GGbrowse/genome/whe_Ta_ABD_IWGSC-WGA-v1.0_2017\n" +
     "node jriptrack.js -u https://wheat.pw.usda.gov/GGbrowse/genome/whe_Ta_ABD_IWGSC-WGA-v1.0_2017 -n hiconf-1.1 -d data\n" +
     "\n"
 )
@@ -34,7 +36,28 @@ if (_.isEmpty(opt.options)) {
 
 //console.log(opt.options);
 
-if (opt.options.url && opt.options.name && opt.options.dir) {
+// download only trackList.json
+if (opt.options.url && opt.options.gettracklist) {
+    baseurl = opt.options.url;
+    if (baseurl.slice(-1) !== '/') baseurl += '/';
+
+    console.log('retrieve trackList.json');
+
+    let tracklist = baseurl+'trackList.json';
+
+    request(tracklist, function (err, response, body) {
+        if (err) {
+            console.log(err);
+            return;
+        }
+        
+        fs.writeFileSync('./trackList.json',body);
+    });
+    process.exit(0);
+}
+
+// download entire track data
+else if (opt.options.url && opt.options.name && opt.options.dir) {
     baseurl = opt.options.url;
     trackname = opt.options.name;
     targetdir = opt.options.dir;
@@ -45,9 +68,10 @@ if (opt.options.url && opt.options.name && opt.options.dir) {
     if (targetdir.slice(-1) !== '/') targetdir += '/';
 }
 // exit if we didn't get the parameters we need
-else
+else {
+    console.log('missing parameters');
     process.exit(1);
-
+}
 
 let reqarray = {
     count:0,
