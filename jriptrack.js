@@ -24,7 +24,7 @@ let opt = new getopt([
     "\n" +
     "[[OPTIONS]]\n" +
     "\n" +
-    "node jriptrack -u https://wheat.pw.usda.gov/GGbrowse -p genome/whe_Ta_ABD_IWGSC-WGA-v1.0_2017 -n hiconf-1.1 -d data\n" +
+    "node jriptrack -u https://wheat.pw.usda.gov/GGbrowse/genome/whe_Ta_ABD_IWGSC-WGA-v1.0_2017 -n hiconf-1.1 -d data\n" +
     "\n"
 )
 .bindHelp()
