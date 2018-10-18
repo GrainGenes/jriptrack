@@ -91,13 +91,13 @@ getRefSeqs(function(chrlist,err) {
     let reqtrackcount = 0;
     // chrlist is content of seq/refSeqs.json
 
-    // queue up names.txt
-    let names = {
-        url: baseurl,
-        path: targetdir,
-        file: "trackList.json"
-    }
-    reqarray.sendToQueue(names);
+    // queue up trackList.json
+    // let names = {
+    //     url: baseurl,
+    //     path: targetdir,
+    //     file: "trackList.json"
+    // }
+    // reqarray.sendToQueue(names);
 
 
     // look for trackData.json in each sequence (ie. chr1, chr2, etc.)
