@@ -51,9 +51,8 @@ if (opt.options.url && opt.options.gettracklist) {
             return;
         }
         
-        fs.writeFileSync('./trackList.json',body);
+        fs.writeFile('trackList.json',body);
     });
-    process.exit(0);
 }
 
 // download entire track data
@@ -66,11 +65,12 @@ else if (opt.options.url && opt.options.name && opt.options.dir) {
     // ensure trailing /
     if (baseurl.slice(-1) !== '/') baseurl += '/';
     if (targetdir.slice(-1) !== '/') targetdir += '/';
+
+    processDownload();
 }
 // exit if we didn't get the parameters we need
 else {
     console.log('missing parameters');
-    process.exit(1);
 }
 
 let reqarray = {
@@ -82,129 +82,130 @@ let reqarray = {
         this.count++;
     }
 };
+// main processing - download all files
+function processDownload() {
+    getRefSeqs(function(chrlist,err) {
+        if (err) {
+            console.log(err);
+            return;
+        }
+        let reqtrackcount = 0;
+        // chrlist is content of seq/refSeqs.json
 
-getRefSeqs(function(chrlist,err) {
-    if (err) {
-        console.log(err);
-        return;
-    }
-    let reqtrackcount = 0;
-    // chrlist is content of seq/refSeqs.json
-
-    // queue up trackList.json
-    // let names = {
-    //     url: baseurl,
-    //     path: targetdir,
-    //     file: "trackList.json"
-    // }
-    // reqarray.sendToQueue(names);
+        // queue up trackList.json
+        // let names = {
+        //     url: baseurl,
+        //     path: targetdir,
+        //     file: "trackList.json"
+        // }
+        // reqarray.sendToQueue(names);
 
 
-    // look for trackData.json in each sequence (ie. chr1, chr2, etc.)
-    for (i in chrlist) {
-        let fi = baseurl+"tracks/"+trackname+"/"+chrlist[i].name+"/trackData.json";
-        console.log("chr",chrlist[i].name);
+        // look for trackData.json in each sequence (ie. chr1, chr2, etc.)
+        for (i in chrlist) {
+            let fi = baseurl+"tracks/"+trackname+"/"+chrlist[i].name+"/trackData.json";
+            console.log("chr",chrlist[i].name);
 
-        reqtrackcount++;
-        
-        getTrackData(fi,chrlist[i].name,function(trackData,chrname,err){
-            if (err) {
-                console.log('error reading trackData.json for',chrname);
-                reqtrackcount--;
-                return;
-            }
-            //got trackData.json
-
-            let dir = targetdir+'tracks/'+trackname+'/'+chrname+'/';
-            fs.ensureDirSync(dir);
-
-            // write trackData.json
-            fs.writeFileSync(dir+"trackData.json",JSON.stringify(trackData));
-
-            // queue up names.txt
-            let names = {
-                url: baseurl+"tracks/"+trackname+"/"+chrname+'/',
-                path: dir,
-                file: "names.txt"
-            }
-            reqarray.sendToQueue(names);
-
-            let histograms = trackData.histograms.stats;
-            for(j in histograms) {
-                let item = {
-                    url:baseurl+"tracks/"+trackname+"/"+chrname+"/",
-                    path:dir,
-                    file:"hist-"+histograms[j].basesPerBin+"-0.json"
-                };
-                reqarray.sendToQueue(item);
-            }
-
-            let nclist = trackData.intervals.nclist;
-            for(j in nclist) {
-                let item = {
-                    url:baseurl+"tracks/"+trackname+"/"+chrname+"/",
-                    path:dir,
-                    file:"lf-"+nclist[j][3]+".json"
-                };
-                reqarray.sendToQueue(item);
-            }
-            reqtrackcount--;
-        });
-
-    }
-    // detect when all trackData.json requests are completed
-    let t = setInterval(function(){
-        if (reqtrackcount==0) {
-            clearInterval(t);
-        
-            console.log("Starting requests "+reqarray.count);
-
-            // submit all requests in queue
-            async.eachLimit(reqarray.list,100, function(item, cb) {
-                copyFile(item,function(item,err){
-                    reqarray.count--;
-                    if (err) {
-                        console.log("request failed",item.url,err);
-                        return cb(err);
-                    }
-                    item.complete = true;
-                    process.stdout.write("requests remaining "+reqarray.count+" - "+item.path+item.file+"         \r");
-                    cb();
-                });
-            }, function(err) {
-                // if any of the file processing produced an error, err would equal that error
-                if( err ) {
-                // One of the iterations produced an error.
-                // All processing will now stop.
-                console.log('A file failed to process');
-                } else {
-                console.log('All files have been processed successfully');
-                }
-            });                
-
-            // wait for all requests to complete
-            let lastcount = 0
-            let t2 = setInterval(function() {
-                if (reqarray.count === lastcount) {
-                    clearInterval(t2);
-                    console.log("remaining requests ",reqarray.count);
-
-                    // show remaining requests
-                    for(k in reqarray.list) {
-                        if (typeof reqarray.list[k].complete === 'undefined') {
-                            console.log(k,reqarray.list[k].path+" "+reqarray.list[k].file);
-                        }
-                    }
-                }
-                lastcount = reqarray.count;
-            },2000);
+            reqtrackcount++;
             
+            getTrackData(fi,chrlist[i].name,function(trackData,chrname,err){
+                if (err) {
+                    console.log('error reading trackData.json for',chrname);
+                    reqtrackcount--;
+                    return;
+                }
+                //got trackData.json
+
+                let dir = targetdir+'tracks/'+trackname+'/'+chrname+'/';
+                fs.ensureDirSync(dir);
+
+                // write trackData.json
+                fs.writeFileSync(dir+"trackData.json",JSON.stringify(trackData));
+
+                // queue up names.txt
+                let names = {
+                    url: baseurl+"tracks/"+trackname+"/"+chrname+'/',
+                    path: dir,
+                    file: "names.txt"
+                }
+                reqarray.sendToQueue(names);
+
+                let histograms = trackData.histograms.stats;
+                for(j in histograms) {
+                    let item = {
+                        url:baseurl+"tracks/"+trackname+"/"+chrname+"/",
+                        path:dir,
+                        file:"hist-"+histograms[j].basesPerBin+"-0.json"
+                    };
+                    reqarray.sendToQueue(item);
+                }
+
+                let nclist = trackData.intervals.nclist;
+                for(j in nclist) {
+                    let item = {
+                        url:baseurl+"tracks/"+trackname+"/"+chrname+"/",
+                        path:dir,
+                        file:"lf-"+nclist[j][3]+".json"
+                    };
+                    reqarray.sendToQueue(item);
+                }
+                reqtrackcount--;
+            });
 
         }
-    },500);
-    //console.log(json);
-});
+        // detect when all trackData.json requests are completed
+        let t = setInterval(function(){
+            if (reqtrackcount==0) {
+                clearInterval(t);
+            
+                console.log("Starting requests "+reqarray.count);
 
+                // submit all requests in queue
+                async.eachLimit(reqarray.list,100, function(item, cb) {
+                    copyFile(item,function(item,err){
+                        reqarray.count--;
+                        if (err) {
+                            console.log("request failed",item.url,err);
+                            return cb(err);
+                        }
+                        item.complete = true;
+                        process.stdout.write("requests remaining "+reqarray.count+" - "+item.path+item.file+"         \r");
+                        cb();
+                    });
+                }, function(err) {
+                    // if any of the file processing produced an error, err would equal that error
+                    if( err ) {
+                    // One of the iterations produced an error.
+                    // All processing will now stop.
+                    console.log('A file failed to process');
+                    } else {
+                    console.log('All files have been processed successfully');
+                    }
+                });                
+
+                // wait for all requests to complete
+                let lastcount = 0
+                let t2 = setInterval(function() {
+                    if (reqarray.count === lastcount) {
+                        clearInterval(t2);
+                        console.log("remaining requests ",reqarray.count);
+
+                        // show remaining requests
+                        for(k in reqarray.list) {
+                            if (typeof reqarray.list[k].complete === 'undefined') {
+                                console.log(k,reqarray.list[k].path+" "+reqarray.list[k].file);
+                            }
+                        }
+                    }
+                    lastcount = reqarray.count;
+                },2000);
+                
+
+            }
+        },500);
+        //console.log(json);
+    });
+}
 /*
     get refSeqs.json file 
 */
@@ -238,5 +239,5 @@ function copyFile(item,cb) {
         fs.ensureDirSync(item.path);
         fs.writeFile(item.path+item.file,body);
         return cb(item);
-      });
+    });
 }
