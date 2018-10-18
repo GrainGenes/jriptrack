@@ -2,13 +2,57 @@
 const fs = require("fs-extra");
 const request = require("request");
 const async = require("async");
+const _ = require('lodash');
 
 //let baseurl = "https://urgi.versailles.inra.fr/jbrowseiwgsc/gmod_jbrowse/";
 //let datapath = "myData/IWGSC_RefSeq_v1.0/";
 let baseurl = "https://wheat.pw.usda.gov/GGbrowse/";
 let datapath = "genome/whe_Ta_ABD_IWGSC-WGA-v1.0_2017/";
-let trackname = "hiconf-1.1"
-let targetdir = "data/"
+let trackname = "hiconf-1.1";
+let targetdir = "data/";
+
+
+let getopt = require('node-getopt');
+let opt = new getopt([
+    ['u','url=ARG'          ,'base URL of the source JBrowse'],
+    ['p','path=ARG'         ,'relative path of the JBrowse dataset'],
+    ['n','name=ARG'         ,'track name (label)'],
+    ['d','dir=ARG'          ,'local target directory']
+])
+.setHelp(
+    "Usage: node jriptrack.js [OPTION]\n" +
+    "\n" +
+    "[[OPTIONS]]\n" +
+    "\n" +
+    "node jriptrack -u https://wheat.pw.usda.gov/GGbrowse -p genome/whe_Ta_ABD_IWGSC-WGA-v1.0_2017 -n hiconf-1.1 -d data\n" +
+    "\n"
+)
+.bindHelp()
+.parseSystem();
+
+if (_.isEmpty(opt.options)) {
+    opt.showHelp();
+    process.exit(0);
+}
+
+//console.log(opt.options);
+
+if (opt.options.url && opt.options.path && opt.options.name && opt.options.dir) {
+    baseurl = opt.options.url;
+    datapath = opt.options.path;
+    trackname = opt.options.name;
+    targetdir = opt.options.dir;
+
+    //console.log(typeof targetdir);
+    // ensure trailing /
+    if (baseurl.slice(-1) !== '/') baseurl += '/';
+    if (datapath.slice(-1) !== '/') datapath += '/';
+    if (targetdir.slice(-1) !== '/') targetdir += '/';
+}
+// exit if we didn't get the parameters we need
+else
+    process.exit(1);
+
 
 let reqarray = {
     count:0,
