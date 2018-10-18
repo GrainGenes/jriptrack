@@ -7,7 +7,7 @@ const _ = require('lodash');
 //let baseurl = "https://urgi.versailles.inra.fr/jbrowseiwgsc/gmod_jbrowse/";
 //let datapath = "myData/IWGSC_RefSeq_v1.0/";
 let baseurl = "https://wheat.pw.usda.gov/GGbrowse/";
-let datapath = "genome/whe_Ta_ABD_IWGSC-WGA-v1.0_2017/";
+//let datapath = "genome/whe_Ta_ABD_IWGSC-WGA-v1.0_2017/";
 let trackname = "hiconf-1.1";
 let targetdir = "data/";
 
@@ -37,16 +37,16 @@ if (_.isEmpty(opt.options)) {
 
 //console.log(opt.options);
 
-if (opt.options.url && opt.options.path && opt.options.name && opt.options.dir) {
+if (opt.options.url && opt.options.name && opt.options.dir) {
     baseurl = opt.options.url;
-    datapath = opt.options.path;
+    //datapath = opt.options.path;
     trackname = opt.options.name;
     targetdir = opt.options.dir;
 
     //console.log(typeof targetdir);
     // ensure trailing /
     if (baseurl.slice(-1) !== '/') baseurl += '/';
-    if (datapath.slice(-1) !== '/') datapath += '/';
+    //if (datapath.slice(-1) !== '/') datapath += '/';
     if (targetdir.slice(-1) !== '/') targetdir += '/';
 }
 // exit if we didn't get the parameters we need
@@ -74,7 +74,7 @@ getRefSeqs(function(chrlist,err) {
 
     // queue up names.txt
     let names = {
-        url: baseurl+datapath,
+        url: baseurl,
         path: targetdir,
         file: "trackList.json"
     }
@@ -83,7 +83,7 @@ getRefSeqs(function(chrlist,err) {
 
     // look for trackData.json in each sequence (ie. chr1, chr2, etc.)
     for (i in chrlist) {
-        let fi = baseurl+datapath+"tracks/"+trackname+"/"+chrlist[i].name+"/trackData.json";
+        let fi = baseurl+"tracks/"+trackname+"/"+chrlist[i].name+"/trackData.json";
         console.log("chr",chrlist[i].name);
 
         reqtrackcount++;
@@ -104,7 +104,7 @@ getRefSeqs(function(chrlist,err) {
 
             // queue up names.txt
             let names = {
-                url: baseurl+datapath+"tracks/"+trackname+"/"+chrname+'/',
+                url: baseurl+"tracks/"+trackname+"/"+chrname+'/',
                 path: dir,
                 file: "names.txt"
             }
@@ -113,7 +113,7 @@ getRefSeqs(function(chrlist,err) {
             let histograms = trackData.histograms.stats;
             for(j in histograms) {
                 let item = {
-                    url:baseurl+datapath+"tracks/"+trackname+"/"+chrname+"/",
+                    url:baseurl+"tracks/"+trackname+"/"+chrname+"/",
                     path:dir,
                     file:"hist-"+histograms[j].basesPerBin+"-0.json"
                 };
@@ -123,7 +123,7 @@ getRefSeqs(function(chrlist,err) {
             let nclist = trackData.intervals.nclist;
             for(j in nclist) {
                 let item = {
-                    url:baseurl+datapath+"tracks/"+trackname+"/"+chrname+"/",
+                    url:baseurl+"tracks/"+trackname+"/"+chrname+"/",
                     path:dir,
                     file:"lf-"+nclist[j][3]+".json"
                 };
@@ -190,7 +190,7 @@ getRefSeqs(function(chrlist,err) {
     get refSeqs.json file 
 */
 function getRefSeqs(cb) {
-    let seqdatafile = baseurl+datapath+"seq/refSeqs.json";
+    let seqdatafile = baseurl+"seq/refSeqs.json";
 
     request(seqdatafile, function (err, response, body) {
         if (err) return cb(null,err);
