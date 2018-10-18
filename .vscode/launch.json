@@ -12,6 +12,14 @@
             "program": "${workspaceFolder}/jriptrack.js",
             "args": ["-t", "-u", "https://wheat.pw.usda.gov/GGbrowse/genome/whe_Ta_ABD_IWGSC-WGA-v1.0_2017" ]     
             
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch full download",
+            "program": "${workspaceFolder}/jriptrack.js",
+            "args": ["-u", "https://wheat.pw.usda.gov/GGbrowse/genome/whe_Ta_ABD_IWGSC-WGA-v1.0_2017","-n","hiconf-1.1","-d", "data" ]     
+            
         }
     ]
 }
